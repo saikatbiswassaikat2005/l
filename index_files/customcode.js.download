@@ -1,0 +1,92 @@
+/* custom - define Verint wrapper */
+class uwsConsoleWrapper extends HTMLElement {
+  constructor() {
+    super();
+  }
+}
+customElements.define("uws-console-wrapper", uwsConsoleWrapper);
+
+window.unifiedSDK.run("customcodeManager.registerCustomcode", async ({ use }) => {
+  const [events, loader, logger, rulesEngine, scoringEngine, storage, surveyEngine, visitor] = await use(["events", "loader", "logger", "rulesEngine", "scoringEngine", "storage", "surveyEngine", "visitor"]);
+
+  const unk = '(unknown)';
+
+  function getCookie(cname){let name=cname+"=";let decodedCookie=decodeURIComponent(document.cookie);let ca=decodedCookie.split(";");for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===" "){c=c.substring(1)}if(c.indexOf(name)===0){return c.substring(name.length,c.length)}}return unk}
+
+  visitor.defineProperty("isCentralizedLoginDomain", () => {
+    let x = 'N';
+    if (location.hostname.indexOf('universal-login') !== -1) {
+      x = 'Y';
+    }
+    return x;
+  });
+
+  visitor.defineProperty("visitorID", () => {
+    let x = unk;
+    try {
+      if (typeof _satellite !== "undefined") {
+        if (typeof _satellite.getVar !== "undefined") {
+          if (typeof _satellite.getVar("FPID") !== "undefined") {
+            x = _satellite.getVar("FPID");
+          }
+          else if (typeof _satellite.getVar("ECID") !== "undefined") {
+            x = _satellite.getVar("ECID");
+          }
+        }
+        if (x === unk && typeof _satellite.company !== "undefined" && typeof _satellite.company.orgId !== "undefined" && typeof _satellite.cookie !== "undefined" && typeof _satellite.cookie.get !== "undefined") {
+          let cookiename = "kndctr_" + _satellite.company.orgId.replace("@","_") + "_identity";
+          if (_satellite.cookie.get(cookiename)) {
+            x = decodeURI(_satellite.cookie.get(cookiename));
+          }
+          else {
+            cookiename = "AMCV_" + _satellite.company.orgId;
+            if (_satellite.cookie.get(cookiename)) {
+              let cookieval = decodeURI(_satellite.cookie.get(cookiename));
+              if (cookieval !== "undefined") {
+                let getparts = decodeURI(_satellite.cookie.get(cookiename)).split("|");
+                if (getparts.length > 1) {
+                  let found = 0;
+                  for (let i = 0; i < getparts.length; i++) {
+                    if (found === 1) {
+                      x = getparts[i];
+                      break;
+                    }
+                    else if (getparts[i] === "MCMID") {
+                      found = 1;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (x === unk && typeof _satellite.getVisitorId !== "undefined") {
+          try {
+            x = _satellite.getVisitorId()._fields.MCMID;
+          }
+          catch(e){}
+        }
+        if (x === unk && typeof s_c_il !== "undefined") {
+          if (typeof s_c_il[0] !== "undefined" && typeof s_c_il[0].marketingCloudVisitorID !== "undefined") {
+            x = s_c_il[0].marketingCloudVisitorID;
+          }
+          else if (typeof s_c_il[1] !== "undefined" && typeof s_c_il[1].marketingCloudVisitorID !== "undefined") {
+            x = s_c_il[1].marketingCloudVisitorID;
+          }
+          else if (typeof s_c_il[0] !== "undefined" && typeof s_c_il[0].getMarketingCloudVisitorID !== "undefined") {
+            x = s_c_il[0].getMarketingCloudVisitorID();
+          }
+          else if (typeof s_c_il[1] !== "undefined" && typeof s_c_il[1].getMarketingCloudVisitorID !== "undefined") {
+            x = s_c_il[1].getMarketingCloudVisitorID();
+          }
+        }
+      }
+      else {
+        let cookiename = "_ga";
+        x = getCookie(cookiename);
+      }
+    }
+    catch(e){}
+    return x;
+  });
+});
